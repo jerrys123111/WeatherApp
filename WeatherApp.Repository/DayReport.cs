@@ -1,38 +1,39 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Text;
 
 using WeatherApp.Abstractions;
-using WeatherApp.Abstractions.Models;
 
 namespace WeatherApp.Repository
 {
     public class DayReport : IDayReport
     {
-        public DateTime Date { get; set; }
-        public ITemperature AverageTemperature { get; set; }
+        public DateTime Day { get; set; }
 
-        public DayReport() {
+        public bool ProbabilityOfPrecipitation { get; set; }
 
+        public double AverageTemperature { get; set; }
+
+        public DayReport(DateTime dateTime, double temperature, bool chanceOfPrecipitation) {
+            Day = dateTime;
+            AverageTemperature = temperature;
+            ProbabilityOfPrecipitation = chanceOfPrecipitation;
         }
 
         public bool IsPrecipitationLikely()
         {
-            throw new NotImplementedException();
+            return ProbabilityOfPrecipitation;
         }
 
         public string GenerateDayReport()
         {
             var stringBuilder = new StringBuilder();
-
-            stringBuilder.Append(Date.ToString("MM/dd/yyyy"));
+            
+            stringBuilder.Append($"{Day.ToString("MM/dd/yyyy")}"); 
 
             var chanceOfPrecipitation = IsPrecipitationLikely() ? "*\t" : "\t";
             stringBuilder.Append(chanceOfPrecipitation);
 
-            stringBuilder.Append($"{AverageTemperature.Value}  {AverageTemperature.Unit}");
+            //Format string to 2 decimal places.
+            stringBuilder.Append($"{AverageTemperature:N2}\tF");
 
             return stringBuilder.ToString();
         }

@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
-using System.Net.Http.Json;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Net.Http.Json;
 
 using WeatherApp.Abstractions.Models;
 using WeatherApp.Repository.Exceptions;
@@ -28,43 +22,73 @@ namespace WeatherApp.Repository.OpenWeather
             _units = configuration.TemperatureUnits;
         }
 
-        public async Task<IEnumerable<CoordinateResponse>> GetCoordinates(ILocation location)
+        /// <summary>
+        /// Retrieves the first set of coordinates for a given <see cref="ILocation"/>.
+        /// Requires the API key and base address of the <see cref="HttpClient"/> to already be set.
+        /// </summary>
+        /// <remarks>
+        /// <see href="https://openweathermap.org/api/geocoding-api#direct_name">Link to OpenWeather API documentation</see>
+        /// </remarks>
+        /// <param name="location">Location object to get coordinates for. This uses the city and state information.</param>
+        /// <returns><see cref="Task{CoordinateResponse}"/></returns>
+        public async Task<CoordinateResponse> GetCoordinates(ILocation location)
         {
             var url = $"{_httpClient.BaseAddress}geo/1.0/direct?q={location.City},{location.State},{_countryCode}&limit={_limit}&appid={_apiKey}";
 
-            Console.WriteLine("PREP QUERY");
-            var response = await GetJsonAsAsync<List<CoordinateResponse>>(url);
+            var response = await GetJsonAsAsync<IEnumerable<CoordinateResponse>>(url);
 
-            Console.WriteLine("MADE QUERY");
+            var coordinate = response.FirstOrDefault();
 
-            return response;
+            return coordinate;
 
         }
 
+        /// <summary>
+        /// Retrieves the 5 day weather forecast for a given coordinate.
+        /// Requires the API key and base address of the <see cref="HttpClient"/> to already be set.
+        /// </summary>
+        /// <remarks>
+        /// <see href="https://openweathermap.org/forecast5#5days">Link to OpenWeather API documentation</see>
+        /// </remarks>
+        /// <param name="coordinate">Coordinate object to get forecase information about.</param>
+        /// <returns><see cref="Task{ForecastResponse}"/></returns>
         public async Task<ForecastResponse> GetForecast(ICoordinate coordinate)
         {
             var url = $"{_httpClient.BaseAddress}data/2.5/forecast?lat={coordinate.Latitude}&lon={coordinate.Longitude}&units={_units}&appid={_apiKey}";
 
-            var forecast = GetJsonAsAsync<ForecastResponse>(url);
+            var forecast = await GetJsonAsAsync<ForecastResponse>(url);
 
-            return await forecast;
+            return forecast;
         }
 
-        public async Task<T> GetJsonAsAsync<T>(string url)
+        /// <summary>
+        /// Helper method to make HTTP GET queries easier.
+        /// Returns the HTTP Content as JSON mapped to a given object.
+        /// </summary>
+        /// <typeparam name="TResult">A generic class</typeparam>
+        /// <param name="url">URL to HTTP endpoint, including base address and parameters</param>
+        /// <returns><see cref="Task{TResult}"/></returns>
+        /// <exception cref="OpenWeatherException"></exception>
+        public async Task<TResult> GetJsonAsAsync<TResult>(string url)
         {
-            Console.WriteLine("QUERY ABOUT TO START");
             var response = await _httpClient.GetAsync(url);
-            Console.WriteLine("QUERY CAME BACK");
 
             if (!response.IsSuccessStatusCode)
             {
-                Console.WriteLine("QUERY FAILED");
                 throw new OpenWeatherException($"HTTP call not successful! HTTP Status Code: {response.StatusCode}: {response.ReasonPhrase}\n{response.Content}");
             }
 
-            Console.WriteLine("QUERY WAS SUCCESS");
-            var content = await response.Content.ReadFromJsonAsync<T>();
-            return content;
+            try
+            {
+                var content = await response.Content.ReadFromJsonAsync<TResult>();
+
+                return content == null ? throw new OpenWeatherException($"HTTP call succeeded but no content was returned!") : content;
+            }
+            catch (Exception ex)
+            {
+
+                throw new OpenWeatherException("Deserializing to JSON object failed!", ex.InnerException);
+            }
         }
     }
 }

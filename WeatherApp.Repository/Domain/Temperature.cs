@@ -1,4 +1,7 @@
-﻿using WeatherApp.Abstractions.Models;
+﻿using System.ComponentModel;
+using System.Text.Json.Serialization;
+
+using WeatherApp.Abstractions.Models;
 
 namespace WeatherApp.Repository.Domain
 {
@@ -7,7 +10,10 @@ namespace WeatherApp.Repository.Domain
     /// </summary>
     public class Temperature: ITemperature
     {
+        [DefaultValue("F")]
         public string Unit { get; set; }
+
+        [JsonPropertyName("temp")]
         public double Value { get; set; }
 
         public Temperature(string  unit, double value)

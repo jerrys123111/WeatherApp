@@ -27,17 +27,22 @@ namespace WeatherApp.Service
 
         public async Task RenderOutput(IEnumerable<ILocation> locations)
         {
-            Console.WriteLine("API Key: " + _configuration.Key);
 
             //Creates task for each given location to run in parallel
-            var locationReports = await Task.WhenAll(locations.Select(location => GenerateLocationReport(location)));
+            var locationReports = Task.WhenAll(locations.Select(location => GenerateLocationReport(location))).Result;
 
-            foreach (var location in locations)
+            foreach (var location in locationReports)
             {
-                Console.WriteLine(await GenerateLocationReport(location));
+                Console.WriteLine(location);
             }
         }
 
+        /// <summary>
+        /// This generates the console output section for each given location.
+        /// This is run asynchrously.
+        /// </summary>
+        /// <param name="location">The <see cref="ILocation"/> to process.</param>
+        /// <returns><see cref="Task{string}"/></returns>
         public async Task<string> GenerateLocationReport(ILocation location)
         {
             var stringBuilder = new StringBuilder();

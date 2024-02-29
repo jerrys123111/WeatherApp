@@ -1,12 +1,8 @@
-﻿using System.Reflection;
-using System.Text;
+﻿using System.Text;
 
 using WeatherApp.Abstractions;
 using WeatherApp.Abstractions.Models;
-using WeatherApp.Repository.Domain;
 using WeatherApp.Repository.OpenWeather;
-
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace WeatherApp.Repository
 {
@@ -14,7 +10,7 @@ namespace WeatherApp.Repository
     {
         private readonly OpenWeatherClient _openWeatherClient;
         private readonly int _daysToCapture = 5;
-        private List<IDayReport> _reports;
+        private readonly List<DayReport> _reports = new List<DayReport>();
 
         public WeatherRepository(OpenWeatherClient openWeatherClient)
         {
@@ -23,39 +19,50 @@ namespace WeatherApp.Repository
 
         public async Task<string> GenerateWeatherReport(ILocation location)
         {
-            var stringBuilder = new StringBuilder();
+            var weatherReport = new StringBuilder();
 
-            Console.WriteLine("START HERE");
-            var coordinates = await _openWeatherClient.GetCoordinates(location);
+            //Retrieve coordinates to use for Forecast API call
+            var coordinate = await _openWeatherClient.GetCoordinates(location);
 
-            Console.WriteLine("RETRIEVED COORDS");
+            var forecast =  await _openWeatherClient.GetForecast(coordinate);
 
-            var finalCoordinate = coordinates.FirstOrDefault();
-
-            Console.WriteLine("RETRIEVED FIRST COORDS");
-
-            foreach ( var coordinate in coordinates)
+            //Add DateTime object in the response
+            foreach (var dayResponse in forecast.ForecastList)
             {
-                stringBuilder.AppendLine($"Name: {coordinate.Name}\tLatitude: {coordinate.Latitude}\tLongitude: {coordinate.Longitude}");
+                dayResponse.StandardTime = DateTime.Parse(dayResponse.UTCTime);
             }
 
-            //foreach (var dayReport in _reports)
-            //{
-            //    stringBuilder.AppendLine(dayReport.GenerateDayReport());
-            //}
+            //Do some data cleaning. Remove entries for the current day and limit to only next 5 days.
+            //Group the entries by Date and sort in ascending order.
+            var filteredList = forecast.ForecastList
+                .Where(day => day.StandardTime.Date != DateTime.Today && day.StandardTime.Date < DateTime.Today.AddDays(_daysToCapture + 1))
+                .GroupBy(d => d.StandardTime.Date)
+                .OrderBy(daylist => daylist.Key);
 
-            return stringBuilder.ToString();
-        }
+            foreach (var forecastDayResponse in filteredList)
+            {
+                List<double> temperatures = new List<double>();
+                List<double> chanceOfPercipitation = new List<double>();
 
-        public async Task<string> RetrieveForecastData()
-        {
-            var stringBuilder = new StringBuilder();
+                foreach (var group in forecastDayResponse)
+                {
+                    temperatures.Add(group.MainTemperatureInfo.Value);
+                    chanceOfPercipitation.Add(group.ProbabilityOfPrecipitation);
 
+                }
 
+                var averageTemp = temperatures.Average();
+                var pop = chanceOfPercipitation.Any(num => num > 0);
 
+                var createdDayReport = new DayReport(forecastDayResponse.Key, averageTemp, pop);
 
+                _reports.Add(createdDayReport);
 
-            return string.Empty;
+                weatherReport.AppendLine(createdDayReport.GenerateDayReport());
+
+            }
+
+            return weatherReport.ToString();
         }
 
     }
