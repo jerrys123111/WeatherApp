@@ -11,19 +11,11 @@ namespace WeatherApp.Repository
 {
     public class DayReport : IDayReport
     {
+        public DateTime Date { get; set; }
+        public ITemperature AverageTemperature { get; set; }
 
         public DayReport() {
 
-        }
-
-        public ITemperature AverageTemperature()
-        {
-            throw new NotImplementedException();
-        }
-
-        public DateTime GetDate()
-        {
-            throw new NotImplementedException();
         }
 
         public bool IsPrecipitationLikely()
@@ -35,15 +27,12 @@ namespace WeatherApp.Repository
         {
             var stringBuilder = new StringBuilder();
 
-            stringBuilder.Append(GetDate().ToString("MM/dd/yyyy"));
+            stringBuilder.Append(Date.ToString("MM/dd/yyyy"));
 
-            if (IsPrecipitationLikely())
-            {
-                stringBuilder.Append("*\t");
-            }
-            else stringBuilder.Append('\t');
+            var chanceOfPrecipitation = IsPrecipitationLikely() ? "*\t" : "\t";
+            stringBuilder.Append(chanceOfPrecipitation);
 
-            stringBuilder.Append($"{AverageTemperature().Value}  {AverageTemperature().Unit}");
+            stringBuilder.Append($"{AverageTemperature.Value}  {AverageTemperature.Unit}");
 
             return stringBuilder.ToString();
         }

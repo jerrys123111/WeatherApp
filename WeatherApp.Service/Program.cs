@@ -23,7 +23,7 @@ public class Program
 
         var host = CreateBuilder(args);
 
-        //This data could be grabbed ideally from another source, like a config file or a database.
+        //This data could be grabbed ideally from another source, like a config file or as input parameters.
         var locations = new List<Location>()
         {
             new Location("Marlboro", "MA", "01752"),
@@ -54,10 +54,15 @@ public class Program
     {
         var builder = Host.CreateApplicationBuilder(args);
 
-        var apiUrl = "https://api.openweathermap.org";
-        //var apiKey = builder.Configuration["OpenWeatherApiKey"];
+        //This would normally be grabbed from Configuration, API Key from OpenWeather is required.
+        //Could theoretically use Bind or Options pattern
+        var apiConfig = new OpenWeatherApiConfiguration(
+            builder.Configuration["OpenWeatherApiUrl"] ?? "https://api.openweathermap.org/",
+            builder.Configuration["OpenWeatherApiKey"] ?? "{YOUR_API_KEY_HERE}",
+            builder.Configuration["OpenWeatherApiUnits"] ?? "imperial");
 
-        builder.Services.AddHttpClient<OpenWeatherClient>(client => client.BaseAddress = new Uri(apiUrl));
+        builder.Services.AddSingleton(apiConfig);
+        builder.Services.AddHttpClient<OpenWeatherClient>();
         builder.Services.AddSingleton<IWeatherRepository, WeatherRepository>();
         builder.Services.AddSingleton<IRenderOutput, WeatherConsoleOutput>();
 

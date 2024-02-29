@@ -4,7 +4,11 @@ namespace WeatherApp.Abstractions
 {
     public interface IWeatherRepository
     {
-        public string apiKey { get; set; }
-        public void GenerateWeatherReport(ILocation location);
+        /// <summary>
+        /// Return the weather forecast report for a given location.
+        /// </summary>
+        /// <param name="location"></param>
+        /// <returns></returns>
+        public Task<string> GenerateWeatherReport(ILocation location);
     }
 }

@@ -10,6 +10,6 @@ namespace WeatherApp.Abstractions
         /// <summary>
         /// Method to display the output of the weather report
         /// </summary>
-        void RenderOutput(IEnumerable<ILocation> locations);
+        Task RenderOutput(IEnumerable<ILocation> locations);
     }
 }
